@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PredictIQ — Predictive Analytics Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#090b0e;--surface:#0d1117;--card:#111820;--card2:#141e28;
+  --border:#1e2d3d;--border2:#243447;
+  --gold:#c9a84c;--gold2:#e8c87a;--gold-dim:#6b5520;
+  --blue:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f97316;
+  --text:#cdd6e0;--muted:#4a6070;--bright:#e8f0f7;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;--serif:'Playfair Display',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 40% at 20% 0%,rgba(201,168,76,.06) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 30% at 80% 100%,rgba(59,130,246,.05) 0%,transparent 60%);
+  pointer-events:none;
+}
+
+/* ── SIDEBAR ── */
+aside{
+  position:fixed;left:0;top:0;bottom:0;width:220px;
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;z-index:50;
+}
+.brand{padding:1.5rem 1.4rem;border-bottom:1px solid var(--border);}
+.brand-name{font-family:var(--serif);font-size:1.25rem;color:var(--gold);line-height:1.1;}
+.brand-sub{font-size:.65rem;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:3px;}
+nav{padding:1rem 0;flex:1;}
+.nav-section{font-size:.62rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--muted);padding:.5rem 1.4rem;margin-top:.5rem;}
+.nav-item{
+  display:flex;align-items:center;gap:.7rem;padding:.65rem 1.4rem;
+  cursor:pointer;transition:all .2s;font-size:.85rem;color:var(--muted);
+  border-left:2px solid transparent;
+}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,.06);}
+.nav-icon{width:16px;height:16px;opacity:.7;}
+.sidebar-footer{padding:1rem 1.4rem;border-top:1px solid var(--border);}
+.model-status{font-size:.72rem;color:var(--muted);margin-bottom:.3rem;}
+.model-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:5px;animation:glow 2s infinite;}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4);}50%{box-shadow:0 0 6px rgba(34,197,94,.6);}}
+
+/* ── MAIN ── */
+.wrapper{margin-left:220px;min-height:100vh;display:flex;flex-direction:column;}
+header{
+  background:rgba(9,11,14,.9);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);padding:0 2rem;
+  height:56px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:40;
+}
+.page-title{font-family:var(--serif);font-size:1.05rem;color:var(--bright);}
+.header-right{display:flex;align-items:center;gap:1rem;}
+.hdr-chip{
+  font-family:var(--mono);font-size:.7rem;padding:.3rem .7rem;
+  border:1px solid var(--border);border-radius:4px;color:var(--muted);
+}
+.hdr-chip.live{border-color:rgba(34,197,94,.3);color:var(--green);}
+
+main{padding:1.8rem 2rem;flex:1;}
+
+/* ── TAB CONTENT ── */
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.8rem;}
+.kpi-card{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  padding:1.2rem 1.4rem;position:relative;overflow:hidden;
+}
+.kpi-card::before{
+  content:'';position:absolute;top:0;left:0;width:3px;height:100%;
+  background:var(--gold);
+}
+.kpi-label{font-size:.7rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:.5rem;}
+.kpi-value{font-family:var(--serif);font-size:1.8rem;color:var(--bright);line-height:1.1;}
+.kpi-change{font-size:.75rem;margin-top:.4rem;display:flex;align-items:center;gap:.3rem;}
+.up{color:var(--green);}
+.down{color:var(--red);}
+
+/* ── PANELS ── */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1.5rem;}
+.panel-hdr{
+  padding:.9rem 1.4rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.panel-title{font-family:var(--serif);font-size:.95rem;color:var(--bright);}
+.panel-badge{font-family:var(--mono);font-size:.68rem;color:var(--muted);}
+.panel-body{padding:1.4rem;}
+
+/* ── CHART ── */
+.chart-wrap{position:relative;height:260px;width:100%;}
+canvas{width:100%!important;}
+
+/* ── FLIGHT PREDICTOR ── */
+.pred-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;}
+.form-group{margin-bottom:1rem;}
+.form-label{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);display:block;margin-bottom:.4rem;}
+.form-input,.form-select{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);padding:.65rem .9rem;border-radius:5px;
+  font-family:var(--font);font-size:.88rem;outline:none;transition:border-color .2s;
+}
+.form-input:focus,.form-select:focus{border-color:var(--gold);}
+.form-select option{background:var(--surface);}
+.btn-predict{
+  width:100%;background:linear-gradient(135deg,var(--gold),#a07830);
+  color:#000;font-family:var(--serif);font-size:.95rem;font-weight:700;
+  padding:.9rem;border:none;border-radius:5px;cursor:pointer;
+  transition:opacity .2s;margin-top:.5rem;
+}
+.btn-predict:hover{opacity:.88;}
+
+.result-box{
+  background:var(--card2);border:1px solid var(--border2);border-radius:8px;
+  padding:1.4rem;margin-top:1.4rem;display:none;
+}
+.result-box.show{display:block;}
+.price-display{
+  font-family:var(--serif);font-size:3rem;color:var(--gold);
+  text-align:center;margin:.5rem 0;line-height:1;
+}
+.price-range{text-align:center;font-size:.8rem;color:var(--muted);margin-bottom:1rem;}
+.rec-badge{
+  display:inline-block;padding:.3rem .9rem;border-radius:20px;
+  font-size:.78rem;font-weight:600;text-align:center;width:100%;margin-bottom:1rem;
+}
+.rec-now{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.rec-good{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.rec-wait{background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3);}
+
+.feat-row{display:flex;justify-content:space-between;align-items:center;margin:.4rem 0;}
+.feat-label{font-size:.78rem;color:var(--muted);}
+.feat-bar-wrap{display:flex;align-items:center;gap:.5rem;flex:1;margin:0 .8rem;}
+.feat-bar-bg{flex:1;height:4px;background:var(--border);border-radius:2px;}
+.feat-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold),var(--gold2));}
+.feat-pct{font-family:var(--mono);font-size:.72rem;color:var(--gold);min-width:30px;text-align:right;}
+
+/* ── CHURN TABLE ── */
+.churn-table{width:100%;border-collapse:collapse;}
+.churn-table th{padding:.7rem 1rem;text-align:left;font-size:.68rem;
+  letter-spacing:2px;color:var(--muted);border-bottom:1px solid var(--border);text-transform:uppercase;}
+.churn-table td{padding:.85rem 1rem;border-bottom:1px solid rgba(30,45,61,.5);font-size:.85rem;}
+.churn-table tr:last-child td{border:none;}
+.risk-pill{
+  padding:.25rem .65rem;border-radius:20px;font-size:.72rem;font-weight:600;
+}
+.risk-High{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+.risk-Medium{background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.25);}
+.risk-Low{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+
+/* ── MODELS TABLE ── */
+.models-grid{display:grid;gap:.8rem;padding:1.4rem;}
+.model-card{
+  display:grid;grid-template-columns:1fr 120px 100px 90px;
+  align-items:center;gap:1rem;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:6px;padding:.9rem 1.2rem;
+}
+.model-name{font-weight:600;color:var(--bright);font-size:.9rem;}
+.model-type{font-family:var(--mono);font-size:.72rem;color:var(--muted);}
+.acc-bar-wrap{display:flex;align-items:center;gap:.5rem;}
+.acc-bg{flex:1;height:5px;background:var(--border);border-radius:3px;}
+.acc-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));}
+.acc-num{font-family:var(--mono);font-size:.75rem;color:var(--gold);min-width:38px;}
+.status-chip{
+  font-size:.68rem;padding:.2rem .55rem;border-radius:12px;text-align:center;
+  font-family:var(--mono);
+}
+.status-active{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+.status-training{background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25);}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border2);}
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <div class="brand-name">PredictIQ</div>
+    <div class="brand-sub">Analytics Platform</div>
+  </div>
+  <nav>
+    <div class="nav-section">Dashboard</div>
+    <div class="nav-item active" onclick="showTab('overview',this)">
+      <span>◈</span> Overview
+    </div>
+    <div class="nav-section">Predictions</div>
+    <div class="nav-item" onclick="showTab('forecast',this)">
+      <span>◎</span> Sales Forecast
+    </div>
+    <div class="nav-item" onclick="showTab('flight',this)">
+      <span>◷</span> Flight Prices
+    </div>
+    <div class="nav-item" onclick="showTab('churn',this)">
+      <span>◉</span> Churn Risk
+    </div>
+    <div class="nav-section">System</div>
+    <div class="nav-item" onclick="showTab('models',this)">
+      <span>⬡</span> ML Models
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="model-status"><span class="model-dot"></span>5 models active</div>
+    <div style="font-size:.68rem;color:var(--muted)">Last sync: just now</div>
+  </div>
+</aside>
+
+<div class="wrapper">
+  <header>
+    <div class="page-title" id="pageTitle">Overview Dashboard</div>
+    <div class="header-right">
+      <div class="hdr-chip live">● LIVE DATA</div>
+      <div class="hdr-chip" id="hdrDate"></div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── OVERVIEW ── -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-card"><div class="kpi-label">Loading...</div><div class="kpi-value">—</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+        <div class="panel">
+          <div class="panel-hdr">
+            <span class="panel-title">Revenue Trend (24 months)</span>
+            <span class="panel-badge">HISTORICAL</span>
+          </div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="overviewChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-hdr">
+            <span class="panel-title">Churn Risk by Segment</span>
+            <span class="panel-badge">ML MODEL</span>
+          </div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="churnChart"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FORECAST ── -->
+    <div class="tab-content" id="tab-forecast">
+      <div class="panel">
+        <div class="panel-hdr">
+          <span class="panel-title">Sales Forecast — Next 6 Months</span>
+          <span class="panel-badge" id="forecastAcc"></span>
+        </div>
+        <div class="panel-body"><div class="chart-wrap" style="height:340px"><canvas id="forecastChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- ── FLIGHT PREDICTOR ── -->
+    <div class="tab-content" id="tab-flight">
+      <div class="panel">
+        <div class="panel-hdr">
+          <span class="panel-title">Flight Price Predictor</span>
+          <span class="panel-badge">REGRESSION MODEL · 88.4% ACC</span>
+        </div>
+        <div class="panel-body">
+          <div class="pred-grid">
+            <div>
+              <div class="form-group">
+                <label class="form-label">Airline</label>
+                <select class="form-select" id="fp-airline">
+                  <option>IndiGo</option><option>Air India</option><option>SpiceJet</option>
+                  <option>Emirates</option><option>Singapore Airlines</option><option>Qatar Airways</option>
+                </select>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem">
+                <div class="form-group">
+                  <label class="form-label">Origin</label>
+                  <input class="form-input" id="fp-origin" placeholder="DEL" value="DEL"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Destination</label>
+                  <input class="form-input" id="fp-dest" placeholder="BOM" value="BOM"/>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Days Before Departure</label>
+                <input class="form-input" type="number" id="fp-days" value="14" min="1" max="365"/>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem">
+                <div class="form-group">
+                  <label class="form-label">Duration (hours)</label>
+                  <input class="form-input" type="number" id="fp-dur" value="2.5" step="0.5"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Stops</label>
+                  <select class="form-select" id="fp-stops">
+                    <option value="0">Non-stop</option><option value="1">1 Stop</option><option value="2">2 Stops</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Travel Class</label>
+                <select class="form-select" id="fp-class">
+                  <option value="Economy">Economy</option><option value="Business">Business</option><option value="First">First Class</option>
+                </select>
+              </div>
+              <button class="btn-predict" onclick="predictFlight()">Predict Price</button>
+            </div>
+            <div>
+              <div class="result-box" id="flightResult">
+                <div style="text-align:center;font-size:.7rem;letter-spacing:3px;color:var(--muted);margin-bottom:.5rem">PREDICTED FARE</div>
+                <div class="price-display" id="r-price">$—</div>
+                <div class="price-range" id="r-range">— to —</div>
+                <div class="rec-badge" id="r-rec">—</div>
+                <div style="font-size:.7rem;letter-spacing:2px;color:var(--muted);margin-bottom:.8rem">FEATURE IMPORTANCE</div>
+                <div id="r-features"></div>
+              </div>
+              <div id="r-empty" style="text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.85rem">
+                Fill the form and click Predict<br>to get a fare estimate
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CHURN ── -->
+    <div class="tab-content" id="tab-churn">
+      <div class="panel">
+        <div class="panel-hdr">
+          <span class="panel-title">Customer Churn Risk</span>
+          <span class="panel-badge">CLASSIFICATION MODEL · 91.7% ACC</span>
+        </div>
+        <table class="churn-table" id="churnTable">
+          <thead><tr><th>Segment</th><th>Customers</th><th>Churn Risk</th><th>Avg Revenue</th><th>Risk Level</th></tr></thead>
+          <tbody id="churnBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── MODELS ── -->
+    <div class="tab-content" id="tab-models">
+      <div class="panel">
+        <div class="panel-hdr">
+          <span class="panel-title">Active ML Models</span>
+          <span class="panel-badge">5 DEPLOYED</span>
+        </div>
+        <div class="models-grid" id="modelsGrid"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const API = 'http://localhost:8000';
+
+// Date
+document.getElementById('hdrDate').textContent = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+// Tab navigation
+function showTab(id, el){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+  const titles={overview:'Overview Dashboard',forecast:'Sales Forecast',flight:'Flight Price Predictor',churn:'Churn Risk Analysis',models:'ML Models'};
+  document.getElementById('pageTitle').textContent = titles[id];
+  if(id==='forecast' && !window.forecastLoaded){loadForecast();}
+  if(id==='churn' && !window.churnLoaded){loadChurn();}
+  if(id==='models' && !window.modelsLoaded){loadModels();}
+}
+
+// ── Chart defaults ─────────────────────────────────────────────────────────
+Chart.defaults.color = '#4a6070';
+Chart.defaults.borderColor = '#1e2d3d';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+// ── KPIs ──────────────────────────────────────────────────────────────────
+async function loadKPIs(){
+  let d;
+  try{ const r=await fetch(`${API}/api/dashboard/kpis`); d=await r.json(); }
+  catch{ d={
+    total_revenue:{value:2847392,change:12.4,unit:'USD'},
+    avg_order_value:{value:284,change:3.8,unit:'USD'},
+    customer_ltv:{value:1840,change:7.2,unit:'USD'},
+    churn_rate:{value:4.7,change:-1.2,unit:'%'},
+    forecast_accuracy:{value:94.2,change:0.8,unit:'%'},
+    models_active:{value:8,change:2,unit:''},
+  };}
+  const labels={total_revenue:'Total Revenue',avg_order_value:'Avg Order Value',customer_ltv:'Customer LTV',
+    churn_rate:'Churn Rate',forecast_accuracy:'Forecast Accuracy',models_active:'Models Active'};
+  const fmt = (k,v) => k==='total_revenue'?`$${(v/1e6).toFixed(2)}M`:k==='churn_rate'?`${v}%`:k==='models_active'?v:`$${v}`;
+  document.getElementById('kpiGrid').innerHTML = Object.entries(d).map(([k,v])=>`
+    <div class="kpi-card">
+      <div class="kpi-label">${labels[k]}</div>
+      <div class="kpi-value">${fmt(k,v.value)}</div>
+      <div class="kpi-change ${v.change>=0?'up':'down'}">${v.change>=0?'▲':'▼'} ${Math.abs(v.change)}${v.unit||'%'} vs last period</div>
+    </div>`).join('');
+}
+
+// ── Overview charts ────────────────────────────────────────────────────────
+async function loadOverview(){
+  let hist;
+  try{ const r=await fetch(`${API}/api/sales/history`); hist=await r.json(); }
+  catch{ hist=Array.from({length:24},(_,i)=>({label:`M${i+1}`,value:Math.random()*20000+40000})); }
+
+  new Chart(document.getElementById('overviewChart'),{
+    type:'line',
+    data:{
+      labels:hist.map(h=>h.label),
+      datasets:[{
+        label:'Revenue',data:hist.map(h=>h.value),
+        borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,.08)',
+        borderWidth:2,pointRadius:2,pointHoverRadius:5,fill:true,tension:.4,
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{maxTicksLimit:8}},y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'}}}}
+  });
+
+  // churn bar chart
+  let churn;
+  try{ const r=await fetch(`${API}/api/customer/churn`); churn=await r.json(); }
+  catch{ churn=[{segment:'Enterprise',churn_risk:.12},{segment:'Mid-Market',churn_risk:.28},{segment:'SMB',churn_risk:.41},{segment:'Startup',churn_risk:.35}]; }
+
+  new Chart(document.getElementById('churnChart'),{
+    type:'bar',
+    data:{
+      labels:churn.map(c=>c.segment),
+      datasets:[{
+        label:'Churn Risk %',
+        data:churn.map(c=>+(c.churn_risk*100).toFixed(1)),
+        backgroundColor:churn.map(c=>c.churn_risk>.35?'rgba(239,68,68,.5)':c.churn_risk>.2?'rgba(249,115,22,.5)':'rgba(34,197,94,.5)'),
+        borderColor:churn.map(c=>c.churn_risk>.35?'#ef4444':c.churn_risk>.2?'#f97316':'#22c55e'),
+        borderWidth:1,borderRadius:4,
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>v+'%'},max:60}}}
+  });
+}
+
+// ── Forecast ──────────────────────────────────────────────────────────────
+async function loadForecast(){
+  window.forecastLoaded=true;
+  let d;
+  try{ const r=await fetch(`${API}/api/sales/forecast`); d=await r.json(); }
+  catch{
+    const h=Array.from({length:24},(_,i)=>({label:`M${i+1}`,value:Math.random()*18000+44000}));
+    const f=Array.from({length:6},(_,i)=>({label:`F${i+1}`,value:Math.random()*20000+58000,lower:50000,upper:70000,is_forecast:true}));
+    d={history:h,forecast:f,accuracy:94.2};
+  }
+  document.getElementById('forecastAcc').textContent=`MODEL ACCURACY: ${d.accuracy}%`;
+  const allLabels=[...d.history.map(h=>h.label),...d.forecast.map(f=>f.label)];
+  const histVals=[...d.history.map(h=>h.value),...Array(d.forecast.length).fill(null)];
+  const foreVals=[...Array(d.history.length-1).fill(null),d.history.at(-1).value,...d.forecast.map(f=>f.value)];
+  const upperVals=[...Array(d.history.length).fill(null),...d.forecast.map(f=>f.upper)];
+  const lowerVals=[...Array(d.history.length).fill(null),...d.forecast.map(f=>f.lower)];
+
+  new Chart(document.getElementById('forecastChart'),{
+    type:'line',
+    data:{
+      labels:allLabels,
+      datasets:[
+        {label:'Historical',data:histVals,borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,.07)',borderWidth:2,fill:true,tension:.4,pointRadius:1},
+        {label:'Forecast',data:foreVals,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',borderWidth:2,borderDash:[6,3],fill:false,tension:.4,pointRadius:3},
+        {label:'Upper Bound',data:upperVals,borderColor:'rgba(59,130,246,.2)',backgroundColor:'rgba(59,130,246,.05)',borderWidth:1,fill:'-1',tension:.4,pointRadius:0},
+        {label:'Lower Bound',data:lowerVals,borderColor:'rgba(59,130,246,.2)',borderWidth:1,fill:false,tension:.4,pointRadius:0},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{boxWidth:12,padding:16}}},
+      scales:{x:{ticks:{maxTicksLimit:10}},y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'}}}}
+  });
+}
+
+// ── Flight predictor ──────────────────────────────────────────────────────
+async function predictFlight(){
+  const payload={
+    airline:document.getElementById('fp-airline').value,
+    origin:document.getElementById('fp-origin').value||'DEL',
+    destination:document.getElementById('fp-dest').value||'BOM',
+    days_before:+document.getElementById('fp-days').value||14,
+    duration_hours:+document.getElementById('fp-dur').value||2.5,
+    stops:+document.getElementById('fp-stops').value,
+    travel_class:document.getElementById('fp-class').value,
+  };
+  let r;
+  try{
+    const res=await fetch(`${API}/api/predict/flight-price`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    r=await res.json();
+  }catch{
+    let base=180+(14-Math.min(payload.days_before,14))*12+payload.duration_hours*22+payload.stops*45;
+    if(payload.travel_class==='Business')base*=2.8; else if(payload.travel_class==='First')base*=4.5;
+    const price=+(base*(Math.random()*.14+.93)).toFixed(2);
+    r={predicted_price:price,confidence:.92,price_range:{low:+(price*.91).toFixed(2),high:+(price*1.11).toFixed(2)},
+      recommendation:payload.days_before<7?'Book Now':price<350?'Good Price':'Wait for Deal',
+      feature_importance:{days_before_departure:.31,flight_duration:.24,airline:.18,travel_class:.16,stops:.11}};
+  }
+
+  document.getElementById('r-empty').style.display='none';
+  const box=document.getElementById('flightResult'); box.classList.add('show');
+  document.getElementById('r-price').textContent=`$${r.predicted_price.toLocaleString()}`;
+  document.getElementById('r-range').textContent=`Range: $${r.price_range.low} — $${r.price_range.high}`;
+  const recEl=document.getElementById('r-rec');
+  recEl.textContent=r.recommendation;
+  recEl.className='rec-badge';
+  recEl.classList.add(r.recommendation.includes('Now')?'rec-now':r.recommendation.includes('Good')?'rec-good':'rec-wait');
+
+  document.getElementById('r-features').innerHTML=Object.entries(r.feature_importance).map(([k,v])=>`
+    <div class="feat-row">
+      <span class="feat-label">${k.replace(/_/g,' ')}</span>
+      <div class="feat-bar-wrap"><div class="feat-bar-bg"><div class="feat-bar" style="width:${v*100}%"></div></div></div>
+      <span class="feat-pct">${(v*100).toFixed(0)}%</span>
+    </div>`).join('');
+}
+
+// ── Churn table ───────────────────────────────────────────────────────────
+async function loadChurn(){
+  window.churnLoaded=true;
+  let data;
+  try{ const r=await fetch(`${API}/api/customer/churn`); data=await r.json(); }
+  catch{ data=[
+    {segment:'Enterprise',churn_risk:.12,customer_count:420,avg_revenue:7200,risk_level:'Low'},
+    {segment:'Mid-Market',churn_risk:.28,customer_count:310,avg_revenue:2400,risk_level:'Medium'},
+    {segment:'SMB',churn_risk:.41,customer_count:780,avg_revenue:680,risk_level:'High'},
+    {segment:'Startup',churn_risk:.35,customer_count:190,avg_revenue:340,risk_level:'High'},
+  ];}
+  document.getElementById('churnBody').innerHTML=data.map(d=>`
+    <tr>
+      <td style="font-weight:600;color:var(--bright)">${d.segment}</td>
+      <td>${d.customer_count.toLocaleString()}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <div style="flex:1;height:4px;background:var(--border);border-radius:2px;max-width:80px">
+            <div style="width:${d.churn_risk*100}%;height:100%;border-radius:2px;
+              background:${d.churn_risk>.35?'#ef4444':d.churn_risk>.2?'#f97316':'#22c55e'}"></div>
+          </div>
+          <span style="font-family:var(--mono);font-size:.78rem">${(d.churn_risk*100).toFixed(1)}%</span>
+        </div>
+      </td>
+      <td style="font-family:var(--mono)">$${d.avg_revenue.toLocaleString()}</td>
+      <td><span class="risk-pill risk-${d.risk_level}">${d.risk_level}</span></td>
+    </tr>`).join('');
+}
+
+// ── Models ────────────────────────────────────────────────────────────────
+async function loadModels(){
+  window.modelsLoaded=true;
+  let data;
+  try{ const r=await fetch(`${API}/api/models`); data=await r.json(); }
+  catch{ data=[
+    {name:'Sales Forecaster',type:'Time Series',accuracy:94.2,status:'active',last_trained:'2025-05-10'},
+    {name:'Churn Predictor',type:'Classification',accuracy:91.7,status:'active',last_trained:'2025-05-09'},
+    {name:'Price Optimizer',type:'Regression',accuracy:88.4,status:'active',last_trained:'2025-05-08'},
+    {name:'Demand Forecaster',type:'Time Series',accuracy:89.1,status:'training',last_trained:'2025-05-11'},
+    {name:'Anomaly Detector',type:'Unsupervised',accuracy:95.6,status:'active',last_trained:'2025-05-07'},
+  ];}
+  document.getElementById('modelsGrid').innerHTML=data.map(m=>`
+    <div class="model-card">
+      <div><div class="model-name">${m.name}</div><div class="model-type">${m.type}</div></div>
+      <div class="acc-bar-wrap">
+        <div class="acc-bg"><div class="acc-fill" style="width:${m.accuracy}%"></div></div>
+        <span class="acc-num">${m.accuracy}%</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:.7rem;color:var(--muted)">${m.last_trained}</div>
+      <span class="status-chip status-${m.status}">${m.status.toUpperCase()}</span>
+    </div>`).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadKPIs();
+loadOverview();
+</script>
+</body>
+</html>
